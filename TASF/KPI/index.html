@@ -46,8 +46,16 @@
         <div class="form-control input-group mb-3">
           <span class="input-group-text" id="basic-addon3">Presupuesto Inicial (Costos) </span>
           <input type="number" class="form-control" aria-describedby="basic-addon3" name="budget" step="0.01" id="budget" value="{{ budget }}" required>
-          <span class="input-group-text">Presupuesto Inicial (Días Hombre)</span>
+          <span class="input-group-text" id="basic-addon4">Presupuesto Inicial (Días Hombre)</span>
           <input type="number" class="form-control" aria-describedby="basic-addon4" name="mandays" step="0.001" id="mandays" value="{{ mandays }}" required>
+          <div class="input-group mb-3">
+            <label class="input-group-text" for="inputGroupSelect03">Área</label>
+            <select class="form-select" name="area-tasf" id="inputGroupSelect03" aria-label="Áreas de Desarrollo de TASF">
+{#              <option disabled selected>Seleccionar...</option>#}
+              <option value="Caudex">Caudex</option>
+              <option value="Web">Web</option>
+            </select>
+          </div>
           <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" name="wrike_file" accept=".xlsx, .xls, .numbers" required>
           <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Cargar archivo</button>
         </div>

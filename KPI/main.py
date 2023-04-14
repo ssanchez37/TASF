@@ -2,14 +2,16 @@ import KPI.funciones as fnc
 import numpy as np
 import pandas as pd
 import warnings as wn
+import sys
 
 wn.simplefilter("ignore")
 
 
 # noinspection PyGlobalUndefined
-def kpis(file, budget, mandays):
+def kpis(file, budget, mandays, area):
+    print(area)
     global t1, inc_time_tot, inc_tot, inc_time_ind, t2, inc_cost_ind, inc_cost_tot, cc_time_tot, t4, cc_time_ind, \
-        cc_cost_tot, t5, cc_cost_ind
+        cc_cost_tot, t5, cc_cost_ind, tiempo_total, t3
     t = pd.read_excel(file)
     tc = pd.read_excel('media/CostoRecurso.xlsx')
     project = t['Nombre'][0]
@@ -22,136 +24,169 @@ def kpis(file, budget, mandays):
     col_tiempo_empleado_datetime = np.zeros(n)
     for x in range(n):
         col_tiempo_empleado_datetime[x] = fnc.excel_date(col_tiempo_empleado[x])
+    try:
+        if area == 'Caudex':
+            col_incidencias = t["Incidencia / Error"]
+            col_incidencias_id = t["Id Incidencia"]
+            tiempo_total = col_tiempo_empleado_datetime[0]
+            tiempo_total_mins = tiempo_total * 60
+            incidencias_index = []
+            for i in range(n):
+                if col_incidencias.values.item(i) == 1:
+                    incidencias_index.append(i)
+            n = len(incidencias_index)
+            incidencias_tiempos = np.zeros(n)
+            incidencias_id = np.zeros(n)
+        else:
+            col_incidencias = t["Tipo Observación"]
+            col_incidencias_id = t["Orden de Atención"]
+            tiempo_total = col_tiempo_empleado_datetime[0]
+            tiempo_total_mins = tiempo_total * 60
+            incidencias_index = []
+            for i in range(n):
+                if col_incidencias.values.item(i) == 'Incidencia':
+                    incidencias_index.append(i)
+            n = len(incidencias_index)
+            incidencias_tiempos = np.zeros(n)
+            incidencias_id = np.zeros(n)
 
-    col_incidencias = t["Incidencia / Error"]
-    col_incidencias_id = t["Id Incidencia"]
-    tiempo_total = col_tiempo_empleado_datetime[0]
-    tiempo_total_mins = tiempo_total * 60
-    incidencias_index = []
-    for i in range(n):
-        if col_incidencias.values.item(i) == 1:
-            incidencias_index.append(i)
+        if n > 0:
+            for i in range(n):
+                m = incidencias_index[i]
+                incidencias_tiempos[i] = col_tiempo_empleado_datetime[m]
+                incidencias_id[i] = col_incidencias_id[m]
+            incidencias_tiempos_mins = incidencias_tiempos * 60
+            tiempo_total_incidencias = sum(incidencias_tiempos_mins)
+            r_inc = tiempo_total_incidencias/tiempo_total_mins
+            r_inc_porc = r_inc * 100
+            if area == 'Caudex':
+                num = len(np.unique(incidencias_id))
+            else:
+                num = len(incidencias_id)
 
-    n = len(incidencias_index)
-    incidencias_tiempos = np.zeros(n)
-    incidencias_id = np.zeros(n)
-    if n > 0:
-        for i in range(n):
-            m = incidencias_index[i]
-            incidencias_tiempos[i] = col_tiempo_empleado_datetime[m]
-            incidencias_id[i] = col_incidencias_id[m]
-        incidencias_tiempos_mins = incidencias_tiempos * 60
-        tiempo_total_incidencias = sum(incidencias_tiempos_mins)
-        r_inc = tiempo_total_incidencias/tiempo_total_mins
-        r_inc_porc = r_inc * 100
-        num = len(np.unique(incidencias_id))
+            inc_tot = str("En el proyecto existen " + str(num) + " incidencias en total.")
+            print(inc_tot)
+            inc_time_tot = str("El porcentaje del tiempo de retrabajo por el total de incidencias es: %.2f" % r_inc_porc
+                               + "%.")
+            print(inc_time_tot)
+            asignados_inc = t["Asignado"][incidencias_index]
+            incidencias_id_series = pd.Series(incidencias_id, name="ID")
+            incidencias_id_series.index = incidencias_index
+            incidencias_tiempos_series = pd.Series(incidencias_tiempos, name="Tiempo")
+            incidencias_tiempos_series.index = incidencias_index
+            asignados_inc = pd.concat([asignados_inc, incidencias_id_series, incidencias_tiempos_series], axis=1)
+            asignados_inc = asignados_inc.join(tc.set_index('Asignado'), on='Asignado')
+            asignados_inc = asignados_inc.sort_values('ID')
+            asignados_inc.index = range(n)
+            asignados = asignados_inc["Asignado"]
+            costos = asignados_inc["CostoHora"]
+            incidencias_tiempos_hour = asignados_inc["Tiempo"]
+            if area == 'Caudex':
+                incidencias_id = asignados_inc["ID"]
+            else:
+                for i in range(n):
+                    incidencias_id[i] = i + 1
+            costos_inc = incidencias_tiempos_hour * costos
+            costos_inc_total = sum(costos_inc)
+            incidencias_tiempos_mins = incidencias_tiempos_hour * 60
+            tiempo_incidencias_ind = incidencias_tiempos_mins/tiempo_total_mins
+            t1 = str("El porcentaje del tiempo total de retrabajo por cada incidencia es:")
+            print(t1)
+            inc_time_ind = []
+            for i in range(n):
+                if tiempo_incidencias_ind[i] != 0:
+                    texto = "Responsable: %s" % str(asignados[i])
+                    inc_time_ind.append("Incidencia #%d = %.2f" % (incidencias_id[i], tiempo_incidencias_ind[i]*100) +
+                                        "% - " + texto)
+                    print("Incidencia #%d = %.2f" % (incidencias_id[i], tiempo_incidencias_ind[i]*100) + "% - " + texto)
+            inc_cost_tot = ("El costo total del retrabajo por incidencias es: $ %.2f" % costos_inc_total + ".")
+            print(inc_cost_tot)
+            t2 = str("El costo de retrabajo por cada incidencia es:")
+            print(t2)
+            inc_cost_ind = []
+            for i in range(n):
+                if costos_inc[i] != 0:
+                    texto = "Responsable: %s" % str(asignados[i])
+                    inc_cost_ind.append('Incidencia #%d = $%.2f' % (incidencias_id[i], costos_inc[i]) + " - " + texto)
+                    print('Incidencia #%d = $%.2f' % (incidencias_id[i], costos_inc[i]) + " - " + texto)
+        else:
+            print("No se detectaron incidencias")
 
-        inc_tot = str("En el proyecto existen " + str(num) + " incidencias en total.")
-        print(inc_tot)
-        inc_time_tot = str("El porcentaje del tiempo de retrabajo por el total de incidencias es: %.2f" % r_inc_porc +
-                           "%.")
-        print(inc_time_tot)
-        asignados_inc = t["Asignado"][incidencias_index]
-        incidencias_id_series = pd.Series(incidencias_id, name="ID")
-        incidencias_id_series.index = incidencias_index
-        incidencias_tiempos_series = pd.Series(incidencias_tiempos, name="Tiempo")
-        incidencias_tiempos_series.index = incidencias_index
-        asignados_inc = pd.concat([asignados_inc, incidencias_id_series, incidencias_tiempos_series], axis=1)
-        asignados_inc = asignados_inc.join(tc.set_index('Asignado'), on='Asignado')
-        asignados_inc = asignados_inc.sort_values('ID')
-        asignados_inc.index = range(n)
-        asignados = asignados_inc["Asignado"]
-        costos = asignados_inc["CostoHora"]
-        incidencias_tiempos_hour = asignados_inc["Tiempo"]
-        incidencias_id = asignados_inc["ID"]
-        costos_inc = incidencias_tiempos_hour * costos
-        costos_inc_total = sum(costos_inc)
-        incidencias_tiempos_mins = incidencias_tiempos_hour * 60
-        tiempo_incidencias_ind = incidencias_tiempos_mins/tiempo_total_mins
-        t1 = str("El porcentaje del tiempo total de retrabajo por cada incidencia es:")
-        print(t1)
-        inc_time_ind = []
-        for i in range(n):
-            if tiempo_incidencias_ind[i] != 0:
-                texto = "Responsable: %s" % str(asignados[i])
-                inc_time_ind.append("Incidencia #%d = %.2f" % (incidencias_id[i], tiempo_incidencias_ind[i]*100) +
-                                    "% - " + texto)
-                print("Incidencia #%d = %.2f" % (incidencias_id[i], tiempo_incidencias_ind[i]*100) + "% - " + texto)
-        inc_cost_tot = ("El costo total del retrabajo por incidencias es: $ %.2f" % costos_inc_total + ".")
-        print(inc_cost_tot)
-        t2 = str("El costo de retrabajo por cada incidencia es:")
-        print(t2)
-        inc_cost_ind = []
-        for i in range(n):
-            if costos_inc[i] != 0:
-                texto = "Responsable: %s" % str(asignados[i])
-                inc_cost_ind.append('Incidencia #%d = $%.2f' % (incidencias_id[i], costos_inc[i]) + " - " + texto)
-                print('Incidencia #%d = $%.2f' % (incidencias_id[i], costos_inc[i]) + " - " + texto)
-    else:
-        print("No se detectaron incidencias")
+        t3 = str("----------------- Retrabajo por Controles de Cambios ------------------")
+        print(t3)
 
-    t3 = str("----------------- Retrabajo por Controles de Cambios ------------------")
-    print(t3)
+        if area == 'Caudex':
+            col_id_cc = t["Id Control de Cambio"]
+            n = len(col_tiempo_empleado)
+            cc_index = []
+            for i in range(n):
+                if type(col_id_cc.values.item(i)) != float:
+                    cc_index.append(i)
+        else:
+            col_id_cc = t["Tipo Observación"]
+            n = len(col_tiempo_empleado)
+            cc_index = []
+            for i in range(n):
+                if col_id_cc.values.item(i) == 'Solicitud de Cambio':
+                    cc_index.append(i)
 
-    col_id_cc = t["Id Control de Cambio"]
-    n = len(col_tiempo_empleado)
-    cc_index = []
-    for i in range(n):
-        if type(col_id_cc.values.item(i)) != float:
-            cc_index.append(i)
+        n = len(cc_index)
+        cc_tiempos = np.zeros(n)
 
-    n = len(cc_index)
-    cc_tiempos = np.zeros(n)
+        if n > 0:
+            for i in range(n):
+                m = cc_index[i]
+                cc_tiempos[i] = col_tiempo_empleado_datetime[m]
 
-    if n > 0:
-        for i in range(n):
-            m = cc_index[i]
-            cc_tiempos[i] = col_tiempo_empleado_datetime[m]
+            cc_tiempos_mins = cc_tiempos * 60
+            cc_tiempos_ind = cc_tiempos_mins / tiempo_total_mins
+            tiempo_total_cc = sum(cc_tiempos_mins)
+            r_cc = tiempo_total_cc/tiempo_total_mins
+            r_cc_porc = r_cc * 100
 
-        cc_tiempos_mins = cc_tiempos * 60
-        cc_tiempos_ind = cc_tiempos_mins / tiempo_total_mins
-        tiempo_total_cc = sum(cc_tiempos_mins)
-        r_cc = tiempo_total_cc/tiempo_total_mins
-        r_cc_porc = r_cc * 100
+            cc_time_tot = str("El porcentaje del tiempo de retrabajo por control de cambios es de: %.2f" % r_cc_porc +
+                              "%")
+            print(cc_time_tot)
+            t4 = str("El porcentaje del tiempo total de retrabajo por cada control de cambios es:")
+            print(t4)
+            cc_time_ind = []
+            j = 1
+            for i in range(n):
+                if cc_tiempos_ind[i] != 0:
+                    cc_time_ind.append('CC_%d = %.2f' % (j, cc_tiempos_ind[i]*100) + "%")
+                    print('CC_%d = %.2f' % (j, cc_tiempos_ind[i] * 100) + "%")
+                    j += 1
 
-        cc_time_tot = str("El porcentaje del tiempo de retrabajo por control de cambios es de: %.2f" % r_cc_porc + "%")
-        print(cc_time_tot)
-        t4 = str("El porcentaje del tiempo total de retrabajo por cada control de cambios es:")
-        print(t4)
-        cc_time_ind = []
-        j = 1
-        for i in range(n):
-            if cc_tiempos_ind[i] != 0:
-                cc_time_ind.append('CC_%d = %.2f' % (j, cc_tiempos_ind[i]*100) + "%")
-                print('CC_%d = %.2f' % (j, cc_tiempos_ind[i] * 100) + "%")
-                j += 1
+            asignados_cc = t["Asignado"][cc_index]
+            cc_tiempos_series = pd.Series(cc_tiempos, name="Tiempo")
+            cc_tiempos_series.index = cc_index
+            asignados_cc = pd.concat([asignados_cc, cc_tiempos_series], axis=1)
+            asignados_cc = asignados_cc.join(tc.set_index('Asignado'), on='Asignado')
+            costos = asignados_cc["CostoHora"]
+            cc_tiempos_hours = asignados_cc["Tiempo"]
+            costos_cc = cc_tiempos_hours * costos
+            costos_cc_total = sum(costos_cc)
+            cc_cost_tot = str("El costo total del retrabajo por Control de Cambios es: $%.2f" % costos_cc_total)
+            print(cc_cost_tot)
 
-        asignados_cc = t["Asignado"][cc_index]
-        cc_tiempos_series = pd.Series(cc_tiempos, name="Tiempo")
-        cc_tiempos_series.index = cc_index
-        asignados_cc = pd.concat([asignados_cc, cc_tiempos_series], axis=1)
-        asignados_cc = asignados_cc.join(tc.set_index('Asignado'), on='Asignado')
-        costos = asignados_cc["CostoHora"]
-        cc_tiempos_hours = asignados_cc["Tiempo"]
-        costos_cc = cc_tiempos_hours * costos
-        costos_cc_total = sum(costos_cc)
-        cc_cost_tot = str("El costo total del retrabajo por Control de Cambios es: $%.2f" % costos_cc_total)
-        print(cc_cost_tot)
+            t5 = str("El costo del retrabajo por cada control de cambios es: ")
+            print(t5)
 
-        t5 = str("El costo del retrabajo por cada control de cambios es: ")
-        print(t5)
+            cc_cost_ind = []
+            j = 1
+            for i in range(n):
+                m = cc_index[i]
+                if costos_cc[m] != 0:
+                    cc_cost_ind.append("CC_%d = $%.2f" % (j, costos_cc[m]))
+                    print("CC_%d = $%.2f" % (j, costos_cc[m]))
+                    j += 1
 
-        cc_cost_ind = []
-        j = 1
-        for i in range(n):
-            m = cc_index[i]
-            if costos_cc[m] != 0:
-                cc_cost_ind.append("CC_%d = $%.2f" % (j, costos_cc[m]))
-                print("CC_%d = $%.2f" % (j, costos_cc[m]))
-                j += 1
+        else:
+            print("No se detectaron controles de cambios")
 
-    else:
-        print("No se detectaron controles de cambios")
+    except (NameError, KeyError) as e:
+        print("No se detectaron controles de cambios ni incidencias")
+        print(e)
 
     t6 = str("----------------- Métrica del valor ganado de costos --------------------")
     print(t6)
