@@ -1,0 +1,182 @@
+{% load static %}
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>Indicadores TASF</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="">
+  <meta property="og:type" content="">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="{% static 'isotipo.ico' %}">
+  <!-- Place favicon.ico in the root directory -->
+
+  <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+
+  <meta name="theme-color" content="#fafafa">
+</head>
+
+<body>
+  <header>
+    <a href="#">
+      <img class="logo" alt="Main Logo" src="{% static 'img/icono_tasf.png' %}">
+    </a>
+  </header>
+  <div class="contain-all">
+{#    <img class="background" src="{% static 'img/bg_false.jpg' %}">#}
+    <div class="top-container">
+      <div class="top-group">
+        <img alt="Caudex Logo" src="{% static 'img/CAUDEX_Blanco.png' %}">
+        <h1>Indicadores</h1>
+        <hr>
+      </div>
+    </div>
+    <div class="container-sm">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-control input-group mb-3">
+          <span class="input-group-text" id="basic-addon3">Presupuesto Inicial (Costos) </span>
+          <input type="number" class="form-control" aria-describedby="basic-addon3" name="budget" step="0.01" id="budget" value="{{ budget }}" required>
+          <span class="input-group-text" id="basic-addon4">Presupuesto Inicial (Días Hombre)</span>
+          <input type="number" class="form-control" aria-describedby="basic-addon4" name="mandays" step="0.001" id="mandays" value="{{ mandays }}" required>
+          <div class="input-group mb-3">
+            <label class="input-group-text" for="inputGroupSelect03">Área</label>
+            <select class="form-select" name="area-tasf" id="inputGroupSelect03" aria-label="Áreas de Desarrollo de TASF">
+{#              <option disabled selected>Seleccionar...</option>#}
+              <option value="Caudex">Caudex</option>
+              <option value="Web">Web</option>
+            </select>
+          </div>
+          <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" name="wrike_file" accept=".xlsx, .xls, .numbers" required>
+          <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Cargar archivo</button>
+        </div>
+      </form>
+      <div class="info-container">
+        {% if 1 > 0 %}
+          <h2>{{ output }}</h2>
+          <h3 class="input-group-text col-auto hand" onclick="toggleVis1()">{{ l1 }}</h3>
+          <div id="hideShow" style="display: none">
+            <div class="center-radios">
+              <div class="form-check col-4">
+                <input class="form-check-input" type="radio" name="incidencias_mode" id="radio3" value="resumen" checked>
+                <label class="form-check-label" for="radio3">
+                  Resumen
+                </label>
+              </div>
+              <div class="form-check col-4">
+                <input class="form-check-input" type="radio" name="incidencias_mode" id="radio4" value="detalle">
+                <label class="form-check-label" for="radio4">
+                  Detalle
+                </label>
+              </div>
+            </div>
+            <p>{{ inc_tot }}</p>
+            <p>{{ inc_time_tot }}</p>
+            <p class="detalle ocultar">{{ t1 }}</p>
+            {% for i in inc_time_ind %}
+              <p class="detalle ocultar">{{ i }}</p>
+            {% endfor %}
+            <p>{{ inc_cost_tot}}</p>
+            <p class="detalle ocultar">{{ t2 }}</p>
+            {% for i in inc_cost_ind %}
+              <p class="detalle ocultar">{{ i }}</p>
+            {% endfor %}
+          </div>
+          <h3 class="input-group-text col-auto hand" onclick="toggleVis2()">{{ t3 }}</h3>
+          <div id="hideShow2" style="display: none">
+            <div class="center-radios">
+              <div class="form-check form-check-inline col-6">
+                <input class="form-check-input" type="radio" name="cc_mode" id="radio5" value="resumen" checked>
+                <label class="form-check-label" for="radio5">
+                  Resumen
+                </label>
+              </div>
+              <div class="form-check form-check-inline col-6">
+                <input class="form-check-input" type="radio" name="cc_mode" id="radio6" value="detalle">
+                <label class="form-check-label" for="radio6">
+                  Detalle
+                </label>
+              </div>
+            </div>
+            <p>{{ cc_time_tot }}</p>
+            <p class="detalle1 ocultar">{{ t4 }}</p>
+            {% for i in cc_time_ind %}
+              <p class="detalle1 ocultar">{{ i }}</p>
+            {% endfor %}
+            <p>{{ cc_cost_tot }}</p>
+            <p class="detalle1 ocultar">{{ t5 }}</p>
+            {% for i in cc_cost_ind %}
+              <p class="detalle1 ocultar">{{ i }}</p>
+            {% endfor %}
+          </div>
+          <h3 class="input-group-text col-auto hand" onclick="toggleVis3()">{{ t6 }}</h3>
+          <div id="hideShow3" style="display: none">
+            <p>{{ bcws_costo }}</p>
+            <p>{{ ev_costo }}</p>
+            <p>{{ acwp_costo }}</p>
+            <p>{{ pr_costo }}</p>
+            <p>{{ pf_costo }}</p>
+            <p>{{ cv_costo }}</p>
+          </div>
+          <h3 class="input-group-text col-auto hand" onclick="toggleVis4()">{{ t7 }}</h3>
+          <div id="hideShow4" style="display: none">
+            <div class="center-radios">
+              <div class="form-check form-check-inline col-4">
+                <input class="form-check-input" type="radio" name="bcws_mode" id="radio1" value="original" checked>
+                <label class="form-check-label" for="radio1">
+                  Original
+                </label>
+              </div>
+              <div class="form-check form-check-inline col-4">
+                <input class="form-check-input" type="radio" name="bcws_mode" id="radio2" value="modificado">
+                <label class="form-check-label" for="radio2">
+                  Modificado
+                </label>
+              </div>
+            </div>
+            <div class="bcws-orig">
+              <p class="orig-ev">{{ mandays_tiempo }}</p>
+              <p class="orig-ev">{{ ev_mandays_time }}</p>
+              <p class="orig-ev">{{ acwp_time }}</p>
+              <p class="orig-ev">{{ pr_mandays_tiempo }}</p>
+              <p class="orig-ev">{{ pf_mandays_time }}</p>
+              <p class="orig-ev">{{ sv_mandays_time }}</p>
+            </div>
+            <div class="bcws-mod">
+              <p class="modificado ocultar">{{ bcws_time }}</p>
+              <p class="modificado ocultar">{{ ev_time }}</p>
+              <p class="modificado ocultar">{{ acwp_time }}</p>
+              <p class="modificado ocultar">{{ pr_time }}</p>
+              <p class="modificado ocultar">{{ pf_time }}</p>
+              <p class="modificado ocultar">{{ sv_time }}</p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <!-- Add your site or application content here -->
+  <script src="{% static 'js/vendor/modernizr-3.11.2.min.js' %}"></script>
+  <script src="{% static 'js/jquery-3.6.4.min.js' %}"></script>
+  <script src="{% static 'js/main.js' %}"></script>
+  <script src="{% static 'js/plugins.js' %}"></script>
+  <script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+  <!-- Google Analytics: change UA-XXXXX-Y to be your site's ID. -->
+  <script>
+    window.ga = function () { ga.q.push(arguments) }; ga.q = []; ga.l = +new Date;
+    ga('create', 'UA-XXXXX-Y', 'auto'); ga('set', 'anonymizeIp', true); ga('set', 'transport', 'beacon'); ga('send', 'pageview')
+  </script>
+  <script src="https://www.google-analytics.com/analytics.js" async></script>
+</body>
+
+</html>
